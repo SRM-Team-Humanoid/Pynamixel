@@ -15,7 +15,7 @@ class Dynamixel(object):
         self.baudrate = baudrate
         self.port = dxl.portHandler(port.encode('utf-8'))
         self.protocol = protocol
-        self.resolution = 0.08791208791 # MX-28 Resolution
+        self.resolution = MX_RESOLUTION# MX-28 Resolution
         self.groupwrite = dxl.groupSyncWrite(self.port, self.protocol, ADDR_GOAL_POS, LEN_GOAL_POSITION)
         self.groupread = dxl.groupSyncRead(self.port, self.protocol, ADDR_PRES_POS, LEN_PRESENT_POSITION)
         dxl.packetHandler()
@@ -39,7 +39,7 @@ class Dynamixel(object):
 
     def check_result(self):
         comm_result = dxl.getLastTxRxResult(self.port, self.protocol)
-        if comm_result != 0:
+        if comm_result != COMM_SUCCESS:
             print(dxl.getTxRxResult(self.protocol, comm_result))
 
     # Set dxl operation mode (1: Vel control, 3: Position Control, 4: Multi-turn, 16: PWM)
@@ -76,7 +76,7 @@ class Dynamixel(object):
         return degree
 
     def write(self, write_dict):
-        goal_position = int()
+        goal_position = 0
         for id,angle in write_dict.items():
             # Add parameter storage for dxl present position value
             addparam_result = ctypes.c_ubyte(dxl.groupSyncReadAddParam(self.groupread, id)).value
@@ -96,7 +96,6 @@ class Dynamixel(object):
 
             # Add dxl goal position value to the Syncwrite storage
             addparam_result = ctypes.c_ubyte(dxl.groupSyncWriteAddParam(self.groupwrite, id, angle, LEN_GOAL_POSITION)).value
-            print(addparam_result)
             if addparam_result != 1:
                 print("[ID:%03d] groupSyncWrite addparam failed" % (id))
                 quit()
@@ -104,16 +103,12 @@ class Dynamixel(object):
 
         # Syncwrite goal position
         dxl.groupSyncWriteTxPacket(self.groupwrite)
-        comm_result = dxl.getLastTxRxResult(self.port, self.protocol)
-        if comm_result != COMM_SUCCESS:
-            print(dxl.getTxRxResult(self.protocol, comm_result))
+        self.check_result()
 
         # Clear syncwrite parameter storage
         dxl.groupSyncWriteClearParam(self.groupwrite)
         self.check_result()
 
-        # Clear syncwrite parameter storage
-        dxl.groupSyncWriteClearParam(self.groupwrite)
 
         while True:
             # Syncread present position
@@ -130,7 +125,7 @@ class Dynamixel(object):
             # Get dxl present position value
             present_position = dxl.groupSyncReadGetData(self.groupread, max_id, ADDR_PRES_POS, LEN_PRESENT_POSITION)
 
-            print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (max_id, goal_position, present_position))
+            #print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (max_id, goal_position, present_position))
 
             if not ((abs(goal_position - present_position) > DXL_MOVING_STATUS_THRESHOLD)):
                 break
@@ -144,3 +139,9 @@ class Dynamixel(object):
             present_position = self.to_degree(present_position)
             positions.append(present_position)
         return positions
+
+    def set_secondary_id(self, ids, secid):
+        for id in ids:
+            dxl.write1ByteTxRx(self.port, self.protocol, id, ADDR_SECONDARY_ID, secid)
+            self.check_result()
+            self.check_error()
