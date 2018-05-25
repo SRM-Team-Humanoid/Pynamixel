@@ -6,30 +6,17 @@ from reg2_0 import *
 from ports import *
 from constants import *
 
-#os.sys.path.append('./dynamixel_functions_py')             # Path setting
 
 import dynamixel_functions as dxl
 
-class Dxl_IO(object):
-    def __init__(self, baudrate = 1000000, port = '/dev/ttyUSB0', protocol = 2):
-        self.baudrate = baudrate
-        self.port = dxl.portHandler(port.encode('utf-8'))
-        self.protocol = protocol
+class Chain(object):
+    def __init__(self, port):
+        self.port = port
+        self.protocol = 2
         self.resolution = MX_RESOLUTION# MX-28 Resolution
         self.groupwrite = dxl.groupSyncWrite(self.port, self.protocol, ADDR_GOAL_POS, LEN_GOAL_POSITION)
         self.groupread = dxl.groupSyncRead(self.port, self.protocol, ADDR_PRES_POS, LEN_PRESENT_POSITION)
-        dxl.packetHandler()
-        self.connect()
-
-    def connect(self):
-        if dxl.openPort(self.port):
-            dxl.setBaudRate(self.port, self.baudrate)
-        else:
-            print("Failed to open the port!")
-            quit()
-
-    def disconnect(self):
-        dxl.closePort(self.port)
+        print("Protocol 2 ready..")
 
     # Check for errors in the last comm
     def check_error(self, id):

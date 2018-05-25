@@ -2,6 +2,7 @@ setup.py
 pynamixel/__init__.py
 pynamixel/constants.py
 pynamixel/dynamixel_functions.py
+pynamixel/io.py
 pynamixel/ports.py
 pynamixel/protocol1_0.py
 pynamixel/protocol2_0.py
